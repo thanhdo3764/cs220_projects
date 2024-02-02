@@ -1,55 +1,64 @@
 var Rank;
 (function (Rank) {
-    Rank[Rank["Ace"] = (1 | "one")] = "Ace";
-    Rank[Rank["Two"] = void 0] = "Two";
-    Rank[Rank["Three"] = void 0] = "Three";
-    Rank[Rank["Four"] = void 0] = "Four";
-    Rank[Rank["Five"] = void 0] = "Five";
-    Rank[Rank["Six"] = void 0] = "Six";
-    Rank[Rank["Seven"] = void 0] = "Seven";
-    Rank[Rank["Eight"] = void 0] = "Eight";
-    Rank[Rank["Nine"] = void 0] = "Nine";
-    Rank[Rank["Ten"] = void 0] = "Ten";
-    Rank[Rank["Jack"] = void 0] = "Jack";
-    Rank[Rank["Queen"] = void 0] = "Queen";
-    Rank[Rank["King"] = void 0] = "King";
+    Rank[Rank["Ace"] = 0] = "Ace";
+    Rank[Rank["Two"] = 1] = "Two";
+    Rank[Rank["Three"] = 2] = "Three";
+    Rank[Rank["Four"] = 3] = "Four";
+    Rank[Rank["Five"] = 4] = "Five";
+    Rank[Rank["Six"] = 5] = "Six";
+    Rank[Rank["Seven"] = 6] = "Seven";
+    Rank[Rank["Eight"] = 7] = "Eight";
+    Rank[Rank["Nine"] = 8] = "Nine";
+    Rank[Rank["Ten"] = 9] = "Ten";
+    Rank[Rank["Jack"] = 10] = "Jack";
+    Rank[Rank["Queen"] = 11] = "Queen";
+    Rank[Rank["King"] = 12] = "King";
 })(Rank || (Rank = {}));
 var Suit;
 (function (Suit) {
-    Suit["Spades"] = "Spades";
-    Suit["Clubs"] = "Clubs";
-    Suit["Diamonds"] = "Diamonds";
-    Suit["Hearts"] = "Hearts";
+    Suit[Suit["Spades"] = 0] = "Spades";
+    Suit[Suit["Clubs"] = 1] = "Clubs";
+    Suit[Suit["Diamonds"] = 2] = "Diamonds";
+    Suit[Suit["Hearts"] = 3] = "Hearts";
 })(Suit || (Suit = {}));
 var Card = /** @class */ (function () {
-    function Card() {
-        this.cardRank = Math.floor((Math.random() * 13) + 1);
-        var randomInt = Math.floor(Math.random() * 4);
-        switch (randomInt) {
-            case 0:
-                this.cardSuit = Suit.Spades;
+    function Card(cardIndex) {
+        this.cardIndex = cardIndex;
+        var cardRank = (cardIndex % 13);
+        var cardSuit = Math.floor(cardIndex / 13);
+        // Determine the value of the card
+        switch (true) {
+            case (cardRank === 0):
+                this.cardValue = 1;
                 break;
-            case 1:
-                this.cardSuit = Suit.Clubs;
+            case (cardRank > 0 && cardRank < 10):
+                this.cardValue = cardRank + 1;
                 break;
-            case 2:
-                this.cardSuit = Suit.Diamonds;
-                break;
-            case 3:
-                this.cardSuit = Suit.Hearts;
+            case (cardRank >= 10):
+                this.cardValue = 10;
                 break;
         }
+        this.cardString = Rank[cardRank] + " of " + Suit[cardSuit] + " with a value of " + this.cardValue + "\n";
     }
     Card.prototype.printCard = function () {
-        var str = this.cardSuit;
-        console.log((this.cardRank + " of %s", str));
+        console.log(this.cardString);
     };
     return Card;
 }());
 var Deck = /** @class */ (function () {
     function Deck() {
+        this.deckOfCards = [];
+        for (var i = 0; i < 52; i++) {
+            this.deckOfCards.push(new Card(i));
+        }
     }
+    Deck.prototype.printDeck = function () {
+        for (var _i = 0, _a = this.deckOfCards; _i < _a.length; _i++) {
+            var c = _a[_i];
+            c.printCard();
+        }
+    };
     return Deck;
 }());
-var x = new Card();
-x.printCard();
+var x = new Deck();
+x.printDeck();
