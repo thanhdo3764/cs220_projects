@@ -29,7 +29,7 @@ var Card = /** @class */ (function () {
         // Determine the value of the card
         switch (true) {
             case (cardRank === 0):
-                this.cardValue = 1;
+                this.cardValue = 11;
                 break;
             case (cardRank > 0 && cardRank < 10):
                 this.cardValue = cardRank + 1;
@@ -38,7 +38,7 @@ var Card = /** @class */ (function () {
                 this.cardValue = 10;
                 break;
         }
-        this.cardString = Rank[cardRank] + " of " + Suit[cardSuit] + " with a value of " + this.cardValue + "\n";
+        this.cardString = Rank[cardRank] + " of " + Suit[cardSuit];
     }
     Card.prototype.printCard = function () {
         console.log(this.cardString);
@@ -58,7 +58,51 @@ var Deck = /** @class */ (function () {
             c.printCard();
         }
     };
+    Deck.prototype.shuffle = function () {
+        for (var i = 0; i < 100; i++) {
+            var firstCardIndex = Math.floor(Math.random() * 52);
+            var secondCardIndex = Math.floor(Math.random() * 52);
+            var temp = this.deckOfCards[firstCardIndex];
+            this.deckOfCards[firstCardIndex] = this.deckOfCards[secondCardIndex];
+            this.deckOfCards[secondCardIndex] = temp;
+        }
+    };
     return Deck;
 }());
-var x = new Deck();
-x.printDeck();
+var Game = /** @class */ (function () {
+    function Game() {
+        this.gameDeck = new Deck;
+        console.log("\n\n----  |    ---   --- |   /    -----  ---   --- |   /");
+        console.log("|   | |   |   | |    |  /       |   |   | |    |  /");
+        console.log("|---  |   |---| |    |--        |   |---| |    |-- ");
+        console.log("|   | |   |   | |    |  \\       |   |   | |    |  \\");
+        console.log("----  --- |   |  --- |   \\    --    |   |  --- |   \\\n\n");
+    }
+    Game.prototype.hostGame = function () {
+        this.gameDeck.shuffle();
+        var dealerCards = [];
+        var playerCards = [];
+        var dealerScore = 0;
+        var playerScore = 0;
+        var playerCardsString = "";
+        // Give Dealer 2 cards and print 1
+        for (var i = 0; i < 2; i++) {
+            var card = this.gameDeck.deckOfCards.pop();
+            dealerCards.push(card);
+            dealerScore += card.cardValue;
+        }
+        console.log("\nDealer's Cards: " + dealerCards[0].cardString + " and one hidden card");
+        // Give Player 2 cards and print both
+        for (var i = 0; i < 2; i++) {
+            var card = this.gameDeck.deckOfCards.pop();
+            playerCards.push(card);
+            playerScore += card.cardValue;
+            playerCardsString += card.cardString + ", ";
+        }
+        console.log("\nPlayer's Cards: " + playerCardsString);
+        console.log("Player's Score: " + playerScore);
+    };
+    return Game;
+}());
+var x = new Game();
+x.hostGame();

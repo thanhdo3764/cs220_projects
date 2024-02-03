@@ -37,7 +37,7 @@ class Card {
 		// Determine the value of the card
 		switch (true) {
 			case (cardRank === 0):
-				this.cardValue = 1;
+				this.cardValue = 11;
 				break;
 			case (cardRank > 0 && cardRank < 10):
 				this.cardValue = cardRank + 1;
@@ -47,7 +47,7 @@ class Card {
 				break;
 		}
 
-		this.cardString = Rank[cardRank] + " of " + Suit[cardSuit] + " with a value of " + this.cardValue + "\n";
+		this.cardString = Rank[cardRank]+" of "+Suit[cardSuit];
 	}
 
 	printCard(): void {
@@ -61,7 +61,7 @@ class Deck {
 	deckOfCards: Card[] = [];
 	
 	constructor() {
-		for (let i:number=0; i < 52; i++) {
+		for (let i=0; i < 52; i++) {
 			this.deckOfCards.push(new Card(i));
 		}
 	}
@@ -71,7 +71,76 @@ class Deck {
 			c.printCard();
 		}
 	}
+
+	shuffle(): void {
+		for (let i = 0; i < 100; i++) {
+			let firstCardIndex: number = Math.floor(Math.random()*52);
+			let secondCardIndex: number = Math.floor(Math.random()*52);
+			let temp = this.deckOfCards[firstCardIndex];
+			this.deckOfCards[firstCardIndex] = this.deckOfCards[secondCardIndex];
+			this.deckOfCards[secondCardIndex] = temp;
+		}
+	}
 }
 
-let x:Deck = new Deck();
-x.printDeck();
+class Game {
+
+	gameDeck: Deck = new Deck;
+
+	constructor() {
+		console.log("\n\n----  |    ---   --- |   /    -----  ---   --- |   /")
+		console.log("|   | |   |   | |    |  /       |   |   | |    |  /")
+		console.log("|---  |   |---| |    |--        |   |---| |    |-- ")
+		console.log("|   | |   |   | |    |  \\       |   |   | |    |  \\")
+		console.log("----  --- |   |  --- |   \\    --    |   |  --- |   \\\n\n")
+	}
+
+	hostGame(): void {
+		this.gameDeck.shuffle();
+
+		let dealerCards: Card[] = [];
+		let playerCards: Card[] = [];
+		
+		let dealerScore: number = 0;
+		let playerScore: number = 0;
+
+		let playerCardsString: string = "";
+
+		// Give Dealer 2 cards and print 1
+		for (let i=0; i<2; i++) {
+			let card = this.gameDeck.deckOfCards.pop();
+			dealerCards.push(card);
+			dealerScore += card.cardValue;
+		}
+		console.log("\nDealer's Cards: "+dealerCards[0].cardString+" and one hidden card");
+		
+		// Give Player 2 cards and print both
+		for (let i=0; i<2; i++) {
+			let card = this.gameDeck.deckOfCards.pop();
+			playerCards.push(card);
+			playerScore += card.cardValue;
+			playerCardsString += card.cardString + ", "
+		}
+		console.log("\nPlayer's Cards: " + playerCardsString);
+		console.log("Player's Score: "+playerScore)
+
+	}
+}
+let x: Game = new Game();
+x.hostGame();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
