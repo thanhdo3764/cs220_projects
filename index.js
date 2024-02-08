@@ -1,3 +1,5 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
 var Rank;
 (function (Rank) {
     Rank[Rank["Ace"] = 0] = "Ace";
@@ -45,41 +47,30 @@ var Card = /** @class */ (function () {
     };
     return Card;
 }());
-var Deck = /** @class */ (function () {
-    function Deck() {
-        this.deckOfCards = [];
-        for (var i = 0; i < 52; i++) {
-            this.deckOfCards.push(new Card(i));
-        }
-    }
-    Deck.prototype.printDeck = function () {
-        for (var _i = 0, _a = this.deckOfCards; _i < _a.length; _i++) {
-            var c = _a[_i];
-            c.printCard();
-        }
-    };
-    Deck.prototype.shuffle = function () {
-        for (var i = 0; i < 100; i++) {
-            var firstCardIndex = Math.floor(Math.random() * 52);
-            var secondCardIndex = Math.floor(Math.random() * 52);
-            var temp = this.deckOfCards[firstCardIndex];
-            this.deckOfCards[firstCardIndex] = this.deckOfCards[secondCardIndex];
-            this.deckOfCards[secondCardIndex] = temp;
-        }
-    };
-    return Deck;
-}());
 var Game = /** @class */ (function () {
     function Game() {
-        this.gameDeck = new Deck;
+        this.gameDeck = [];
+        // Initialize gameDeck with all 52 cards
+        for (var i = 0; i < 52; i++) {
+            this.gameDeck.push(new Card(i));
+        }
         console.log("\n\n----  |    ---   --- |   /    -----  ---   --- |   /");
         console.log("|   | |   |   | |    |  /       |   |   | |    |  /");
         console.log("|---  |   |---| |    |--        |   |---| |    |-- ");
         console.log("|   | |   |   | |    |  \\       |   |   | |    |  \\");
         console.log("----  --- |   |  --- |   \\    --    |   |  --- |   \\\n\n");
     }
+    Game.prototype.shuffle = function () {
+        for (var i = 0; i < 100; i++) {
+            var firstCardIndex = Math.floor(Math.random() * 52);
+            var secondCardIndex = Math.floor(Math.random() * 52);
+            var temp = this.gameDeck[firstCardIndex];
+            this.gameDeck[firstCardIndex] = this.gameDeck[secondCardIndex];
+            this.gameDeck[secondCardIndex] = temp;
+        }
+    };
     Game.prototype.hostGame = function () {
-        this.gameDeck.shuffle();
+        this.shuffle();
         var dealerCards = [];
         var playerCards = [];
         var dealerScore = 0;
@@ -87,14 +78,14 @@ var Game = /** @class */ (function () {
         var playerCardsString = "";
         // Give Dealer 2 cards and print 1
         for (var i = 0; i < 2; i++) {
-            var card = this.gameDeck.deckOfCards.pop();
+            var card = this.gameDeck.pop();
             dealerCards.push(card);
             dealerScore += card.cardValue;
         }
         console.log("\nDealer's Cards: " + dealerCards[0].cardString + " and one hidden card");
         // Give Player 2 cards and print both
         for (var i = 0; i < 2; i++) {
-            var card = this.gameDeck.deckOfCards.pop();
+            var card = this.gameDeck.pop();
             playerCards.push(card);
             playerScore += card.cardValue;
             playerCardsString += card.cardString + ", ";

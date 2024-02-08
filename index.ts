@@ -1,3 +1,5 @@
+import * as readline from 'readline-sync';
+
 enum Rank {
 	Ace,
 	Two,
@@ -56,47 +58,37 @@ class Card {
 
 }
 
-class Deck {
+class Game {
 
-	deckOfCards: Card[] = [];
-	
+	gameDeck: Card[] = [];
+
 	constructor() {
+		// Initialize gameDeck with all 52 cards
 		for (let i=0; i < 52; i++) {
-			this.deckOfCards.push(new Card(i));
+			this.gameDeck.push(new Card(i));
 		}
-	}
 
-	printDeck(): void {
-		for (let c of this.deckOfCards) {
-			c.printCard();
-		}
+		console.log("\n\n----  |    ---   --- |   /    -----  ---   --- |   /")
+		console.log("|   | |   |   | |    |  /       |   |   | |    |  /")
+		console.log("|---  |   |---| |    |--        |   |---| |    |-- ")
+		console.log("|   | |   |   | |    |  \\       |   |   | |    |  \\")
+		console.log("----  --- |   |  --- |   \\    --    |   |  --- |   \\\n\n")
+
 	}
 
 	shuffle(): void {
 		for (let i = 0; i < 100; i++) {
 			let firstCardIndex: number = Math.floor(Math.random()*52);
 			let secondCardIndex: number = Math.floor(Math.random()*52);
-			let temp = this.deckOfCards[firstCardIndex];
-			this.deckOfCards[firstCardIndex] = this.deckOfCards[secondCardIndex];
-			this.deckOfCards[secondCardIndex] = temp;
+			let temp = this.gameDeck[firstCardIndex];
+			this.gameDeck[firstCardIndex] = this.gameDeck[secondCardIndex];
+			this.gameDeck[secondCardIndex] = temp;
 		}
-	}
-}
-
-class Game {
-
-	gameDeck: Deck = new Deck;
-
-	constructor() {
-		console.log("\n\n----  |    ---   --- |   /    -----  ---   --- |   /")
-		console.log("|   | |   |   | |    |  /       |   |   | |    |  /")
-		console.log("|---  |   |---| |    |--        |   |---| |    |-- ")
-		console.log("|   | |   |   | |    |  \\       |   |   | |    |  \\")
-		console.log("----  --- |   |  --- |   \\    --    |   |  --- |   \\\n\n")
 	}
 
 	hostGame(): void {
-		this.gameDeck.shuffle();
+
+		this.shuffle();
 
 		let dealerCards: Card[] = [];
 		let playerCards: Card[] = [];
@@ -108,7 +100,7 @@ class Game {
 
 		// Give Dealer 2 cards and print 1
 		for (let i=0; i<2; i++) {
-			let card = this.gameDeck.deckOfCards.pop();
+			let card = this.gameDeck.pop();
 			dealerCards.push(card);
 			dealerScore += card.cardValue;
 		}
@@ -116,7 +108,7 @@ class Game {
 		
 		// Give Player 2 cards and print both
 		for (let i=0; i<2; i++) {
-			let card = this.gameDeck.deckOfCards.pop();
+			let card = this.gameDeck.pop();
 			playerCards.push(card);
 			playerScore += card.cardValue;
 			playerCardsString += card.cardString + ", "
