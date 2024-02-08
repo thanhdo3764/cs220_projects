@@ -58,11 +58,59 @@ class Card {
 
 }
 
+class Participant {
+
+	name: string = "";
+	deck: Card[] = [];
+	deckString: string = "";
+	score: number = 0;
+
+	constructor(name: string) {
+		this.name = name;
+	}
+
+	add(card: Card): void {
+		// Add a comma to separate cards in deckString
+		if (this.deck.length !== 0) this.deckString += ", ";
+		this.deckString += card.cardString;
+		// Add card to deck
+		this.deck.push(card);
+		// Update score
+		this.score += card.cardValue;
+
+	}
+
+	printStatus(hidden: boolean): void {
+		if (hidden) console.log(this.name+"'s Cards:",this.deck[0].cardString,"and one hidden card");
+		else {
+			console.log(this.name+"'s Cards:",this.deckString,"\n"+this.name+"'s Score:",this.score);
+		}
+	}
+
+	reset(): Card[] {
+		this.deckString = "";
+		this.score = 0;
+		// Copy the cards in deck into tempDeck
+		let tempDeck: Card[] = [];
+		tempDeck.concat(this.deck);
+		// Empty deck
+		this.deck = [];
+		return tempDeck;
+	}
+
+}
+
 class Game {
 
 	gameDeck: Card[] = [];
+	dealer: Participant;
+	player: Participant;
 
 	constructor() {
+		// Initialize Dealer and Player
+		this.dealer = new Participant("Dealer");
+		this.player = new Participant("Player");
+
 		// Initialize gameDeck with all 52 cards
 		for (let i=0; i < 52; i++) {
 			this.gameDeck.push(new Card(i));
@@ -90,32 +138,32 @@ class Game {
 
 		this.shuffle();
 
-		let dealerCards: Card[] = [];
-		let playerCards: Card[] = [];
-		
-		let dealerScore: number = 0;
-		let playerScore: number = 0;
-
-		let playerCardsString: string = "";
-
 		// Give Dealer 2 cards and print 1
-		for (let i=0; i<2; i++) {
-			let card = this.gameDeck.pop();
-			dealerCards.push(card);
-			dealerScore += card.cardValue;
-		}
-		console.log("\nDealer's Cards: "+dealerCards[0].cardString+" and one hidden card");
-		
-		// Give Player 2 cards and print both
-		for (let i=0; i<2; i++) {
-			let card = this.gameDeck.pop();
-			playerCards.push(card);
-			playerScore += card.cardValue;
-			playerCardsString += card.cardString + ", "
-		}
-		console.log("\nPlayer's Cards: " + playerCardsString);
-		console.log("Player's Score: "+playerScore)
+		this.dealer.add(this.gameDeck.pop());
+		this.dealer.add(this.gameDeck.pop());
+		this.dealer.printStatus(true);
+		console.log("\n");
 
+		// Give Player 2 cards and print both
+		this.player.add(this.gameDeck.pop());
+		this.player.add(this.gameDeck.pop());
+		this.player.printStatus(false);
+		console.log("\n");
+
+		// Keep playing until a win or bust for player
+		while(this.player.score <= 21) {
+			let move: string = "";
+			// Keep asking for a valid input
+			while(move!='h' && move!='s'){
+				move = readline.question("Type 'h' to hit or 's' to stay: ");
+			}
+			if (move === 's') break;
+			let cardDealt = this.gameDeck.pop();
+			this.player.add(cardDealt);
+			console.log(this.player.name,"was dealt a",cardDealt.cardString+"\n");
+			this.player.printStatus(false);
+			console.log("\n");
+		}
 	}
 }
 let x: Game = new Game();

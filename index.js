@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+var readline = require("readline-sync");
 var Rank;
 (function (Rank) {
     Rank[Rank["Ace"] = 0] = "Ace";
@@ -47,9 +48,49 @@ var Card = /** @class */ (function () {
     };
     return Card;
 }());
+var Participant = /** @class */ (function () {
+    function Participant(name) {
+        this.name = "";
+        this.deck = [];
+        this.deckString = "";
+        this.score = 0;
+        this.name = name;
+    }
+    Participant.prototype.add = function (card) {
+        // Add a comma to separate cards in deckString
+        if (this.deck.length !== 0)
+            this.deckString += ", ";
+        this.deckString += card.cardString;
+        // Add card to deck
+        this.deck.push(card);
+        // Update score
+        this.score += card.cardValue;
+    };
+    Participant.prototype.printStatus = function (hidden) {
+        if (hidden)
+            console.log(this.name + "'s Cards:", this.deck[0].cardString, "and one hidden card");
+        else {
+            console.log(this.name + "'s Cards:", this.deckString, "\n" + this.name + "'s Score:", this.score);
+        }
+    };
+    Participant.prototype.reset = function () {
+        this.deckString = "";
+        this.score = 0;
+        // Copy the cards in deck into tempDeck
+        var tempDeck = [];
+        tempDeck.concat(this.deck);
+        // Empty deck
+        this.deck = [];
+        return tempDeck;
+    };
+    return Participant;
+}());
 var Game = /** @class */ (function () {
     function Game() {
         this.gameDeck = [];
+        // Initialize Dealer and Player
+        this.dealer = new Participant("Dealer");
+        this.player = new Participant("Player");
         // Initialize gameDeck with all 52 cards
         for (var i = 0; i < 52; i++) {
             this.gameDeck.push(new Card(i));
@@ -71,27 +112,31 @@ var Game = /** @class */ (function () {
     };
     Game.prototype.hostGame = function () {
         this.shuffle();
-        var dealerCards = [];
-        var playerCards = [];
-        var dealerScore = 0;
-        var playerScore = 0;
-        var playerCardsString = "";
         // Give Dealer 2 cards and print 1
-        for (var i = 0; i < 2; i++) {
-            var card = this.gameDeck.pop();
-            dealerCards.push(card);
-            dealerScore += card.cardValue;
-        }
-        console.log("\nDealer's Cards: " + dealerCards[0].cardString + " and one hidden card");
+        this.dealer.add(this.gameDeck.pop());
+        this.dealer.add(this.gameDeck.pop());
+        this.dealer.printStatus(true);
+        console.log("\n");
         // Give Player 2 cards and print both
-        for (var i = 0; i < 2; i++) {
-            var card = this.gameDeck.pop();
-            playerCards.push(card);
-            playerScore += card.cardValue;
-            playerCardsString += card.cardString + ", ";
+        this.player.add(this.gameDeck.pop());
+        this.player.add(this.gameDeck.pop());
+        this.player.printStatus(false);
+        console.log("\n");
+        // Keep playing until a win or bust for player
+        while (this.player.score <= 21) {
+            var move = "";
+            // Keep asking for a valid input
+            while (move != 'h' && move != 's') {
+                move = readline.question("Type 'h' to hit or 's' to stay: ");
+            }
+            if (move === 's')
+                break;
+            var cardDealt = this.gameDeck.pop();
+            this.player.add(cardDealt);
+            console.log(this.player.name, "was dealt a", cardDealt.cardString + "\n");
+            this.player.printStatus(false);
+            console.log("\n");
         }
-        console.log("\nPlayer's Cards: " + playerCardsString);
-        console.log("Player's Score: " + playerScore);
     };
     return Game;
 }());
