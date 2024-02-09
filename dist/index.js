@@ -1,6 +1,15 @@
 "use strict";
+/**
+ * Thanh Do
+ * Aiden Dickson
+ * 14 February 2024
+ * Project 1: Black Jack
+ */
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-var readline = require("readline-sync");
+const readline_sync_1 = __importDefault(require("readline-sync"));
 var Rank;
 (function (Rank) {
     Rank[Rank["Ace"] = 0] = "Ace";
@@ -24,11 +33,21 @@ var Suit;
     Suit[Suit["Diamonds"] = 2] = "Diamonds";
     Suit[Suit["Hearts"] = 3] = "Hearts";
 })(Suit || (Suit = {}));
-var Card = /** @class */ (function () {
-    function Card(cardIndex) {
+class Card {
+    /**
+     * Initializes cardValue and cardString by using a passed index
+     * to calculate the card's rank and suit. The rank then determines
+     * the cardValue.
+     *
+     * The rank and suit of the card is converted into a string
+     * that initializes cardString.
+     */
+    constructor(cardIndex) {
+        this.cardValue = 0;
+        this.cardString = "";
         // Calculate the rank and suit of the card
-        var cardRank = (cardIndex % 13);
-        var cardSuit = Math.floor(cardIndex / 13);
+        let cardRank = (cardIndex % 13);
+        let cardSuit = Math.floor(cardIndex / 13);
         // Determine the value of the card
         switch (true) {
             case (cardRank === 0):
@@ -44,13 +63,15 @@ var Card = /** @class */ (function () {
         // Convert card into a string
         this.cardString = Rank[cardRank] + " of " + Suit[cardSuit];
     }
-    Card.prototype.printCard = function () {
+    /**
+     *  Takes the cardString field and prints it to console
+     */
+    printCard() {
         console.log(this.cardString);
-    };
-    return Card;
-}());
-var Participant = /** @class */ (function () {
-    function Participant(name) {
+    }
+}
+class Participant {
+    constructor(name) {
         this.name = "";
         this.deck = [];
         this.deckString = "";
@@ -58,7 +79,13 @@ var Participant = /** @class */ (function () {
         this.numberOfAces = 0;
         this.name = name;
     }
-    Participant.prototype.add = function (card) {
+    /**
+     * Takes a card object and pushes it to the deck field,
+     * updates the comma-separated deckString field with the card's string,
+     * increases the score by the card's value, and it takes into account
+     * for busts by decreasing the value of aces by 10.
+     */
+    add(card) {
         // Add a comma to separate cards in deckString
         if (this.deck.length !== 0)
             this.deckString += ", ";
@@ -75,38 +102,57 @@ var Participant = /** @class */ (function () {
             this.score -= 10;
             ;
         }
-    };
-    Participant.prototype.printStatus = function (hidden) {
+    }
+    /**
+     * Takes a boolean parameter to check if some print elements should
+     * be hidden. If hidden is false, print the name, cards, and score.
+     * If hidden is true, print the name and one card.
+     */
+    printStatus(hidden) {
         if (hidden)
             console.log(this.name + "'s Cards:", this.deck[0].cardString, "and one hidden card");
         else {
             console.log(this.name + "'s Cards:", this.deckString, "\n" + this.name + "'s Score:", this.score);
         }
-    };
-    Participant.prototype.reset = function () {
+    }
+    /**
+     * Sets all fields to their default values. The cards that were in
+     * the deck will be returned as a Card[] array so that it can
+     * be pushed back into the gameDeck.
+     */
+    reset() {
         this.deckString = "";
         this.score = 0;
         this.numberOfAces = 0;
         // Copy the cards in deck into tempDeck
-        var tempDeck = this.deck;
+        let tempDeck = this.deck;
         // Empty deck
         this.deck = [];
         return tempDeck;
-    };
-    Participant.prototype.isBust = function () {
+    }
+    /**
+     * Returns a boolean that checks if this object has busted.
+     * A bust is true if the score is above 21 points,
+     * otherwise, bust is false.
+     */
+    isBust() {
         return this.score > 21;
-    };
-    return Participant;
-}());
-var Game = /** @class */ (function () {
-    function Game() {
+    }
+}
+class Game {
+    /**
+     * Creates two Participant objects: the dealer and the player.
+     * The field gameDeck is initialize by pushing 52 Card objects
+     * into the array. Then a title screen for Black Jack is printed.
+     */
+    constructor() {
         this.gameDeck = [];
         this.discardedCards = [];
         // Initialize Dealer and Player
         this.dealer = new Participant("Dealer");
         this.player = new Participant("Player");
         // Initialize gameDeck with all 52 cards
-        for (var i = 0; i < 52; i++) {
+        for (let i = 0; i < 52; i++) {
             this.gameDeck.push(new Card(i));
         }
         this.shuffle();
@@ -118,40 +164,74 @@ var Game = /** @class */ (function () {
         console.log("----  --- |   |  --- |   \\    --    |   |  --- |   \\\n\n");
         console.log("----------------------------------------------------\n\n");
     }
-    Game.prototype.shuffle = function () {
+    /**
+     * Shuffles the indices of the 52-card gameDeck
+     */
+    shuffle() {
         // Choose two random cards and swap. Repeat 100 times.
-        for (var i = 0; i < 100; i++) {
-            var firstCardIndex = Math.floor(Math.random() * 52);
-            var secondCardIndex = Math.floor(Math.random() * 52);
-            var temp = this.gameDeck[firstCardIndex];
+        for (let i = 0; i < 100; i++) {
+            let firstCardIndex = Math.floor(Math.random() * 52);
+            let secondCardIndex = Math.floor(Math.random() * 52);
+            let temp = this.gameDeck[firstCardIndex];
             this.gameDeck[firstCardIndex] = this.gameDeck[secondCardIndex];
             this.gameDeck[secondCardIndex] = temp;
         }
-    };
-    Game.prototype.mainMenu = function () {
-        var _a, _b, _c;
+    }
+    /**
+     * Infinitely prompts the user to play or quit. This will be the
+     * method that users outside of the class will interact with to
+     * start a game. If the user types 'q',then it essentially
+     * quits the program.
+     *
+     * If the user types 'p', then the player and dealer are reset
+     * with their cards discarded into discardedCards.
+     * If gameDeck has less than 30 cards, then gameDeck will push its
+     * discarded cards and shuffle. After these checks,
+     * hostGame will commence.
+     */
+    mainMenu() {
         while (true) {
-            var option = "";
+            console.log("\n-------------------\n     MAIN MENU\n-------------------");
+            let option = "";
             while (option !== 'q' && option !== 'p') {
-                option = readline.question("Type 'p' to play a game or 'q' to quit: ");
+                option = readline_sync_1.default.question("Type 'p' to play a game or 'q' to quit: ");
             }
             // Quit mainMenu if q is entered
             if (option === 'q')
                 return;
             // Put cards used last game into discardedCards
-            (_a = this.discardedCards).push.apply(_a, this.player.reset());
-            (_b = this.discardedCards).push.apply(_b, this.dealer.reset());
+            this.discardedCards.push(...this.player.reset());
+            this.discardedCards.push(...this.dealer.reset());
             // Re-add discardedCards to gameDeck and shuffle
             if (this.gameDeck.length < 30) {
-                (_c = this.gameDeck).push.apply(_c, this.discardedCards);
+                this.gameDeck.push(...this.discardedCards);
                 this.shuffle();
                 this.discardedCards = [];
             }
             this.hostGame();
         }
-    };
-    Game.prototype.hostGame = function () {
-        console.log("\n-------------------\nStarting Game . . .\n-------------------\n");
+    }
+    /**
+     * Starts a game of Black Jack. The game starts by dealing and
+     * revealing one of Dealer's cards and both of Player's cards and
+     * their score.
+     *
+     * Player's turn starts by infinitely asking for a hit or stay.
+     * If the user inputs 'h', then a card is added to Player's deck, and
+     * their fields are updated and printed. However, Player could also stay
+     * if 's' is inputted. Every time a card is dealt, busts and black jacks
+     * are taken into account.
+     *
+     * Dealer's turn starts and they must hit until their score is at least 17.
+     * Busts and black jacks are taken into account.
+     *
+     * If both Player and Dealer end with the same score, it's a push.
+     * Else, whoever has the higher score wins. However, if the Player
+     * busts, they will lose, and a Dealer busting is a win for Player if
+     * Player hasn't busted yet.
+     */
+    hostGame() {
+        console.log("\n-------------------\nSTARTING GAME . . .\n-------------------\n");
         // Give Dealer 2 cards and print 1
         this.dealer.add(this.gameDeck.pop());
         this.dealer.add(this.gameDeck.pop());
@@ -162,18 +242,18 @@ var Game = /** @class */ (function () {
         this.player.add(this.gameDeck.pop());
         this.player.printStatus(false);
         // Player's turn
-        console.log("\n-------------------\n   Player's Turn\n-------------------");
+        console.log("\n-------------------\n   PLAYER'S TURN\n-------------------");
         while (this.player.score !== 21) {
             console.log("");
-            var move = "";
+            let move = "";
             // Keep asking for a valid input
             while (move != 'h' && move != 's') {
-                move = readline.question("Type 'h' to hit or 's' to stay: ");
+                move = readline_sync_1.default.question("Type 'h' to hit or 's' to stay: ");
             }
             if (move === 's')
                 break;
             // Add card to player's deck
-            var cardDealt = this.gameDeck.pop();
+            let cardDealt = this.gameDeck.pop();
             this.player.add(cardDealt);
             console.log("Player was dealt a", cardDealt.cardString + "\n");
             this.player.printStatus(false);
@@ -186,11 +266,11 @@ var Game = /** @class */ (function () {
         if (this.player.score === 21)
             console.log("\nBLACK JACK!");
         // Dealer's turn
-        console.log("\n-------------------\n   Dealer's Turn\n-------------------\n");
+        console.log("\n-------------------\n   DEALER'S TURN\n-------------------\n");
         this.dealer.printStatus(false);
         while (this.dealer.score < 17) {
             // Add card to dealer's deck
-            var cardDealt = this.gameDeck.pop();
+            let cardDealt = this.gameDeck.pop();
             this.dealer.add(cardDealt);
             console.log("\nDealer was dealt a", cardDealt.cardString + "\n");
             this.dealer.printStatus(false);
@@ -215,8 +295,7 @@ var Game = /** @class */ (function () {
                 console.log("Player wins!");
                 break;
         }
-    };
-    return Game;
-}());
-var myGame = new Game();
+    }
+}
+let myGame = new Game();
 myGame.mainMenu();
