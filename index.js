@@ -55,6 +55,7 @@ var Participant = /** @class */ (function () {
         this.deck = [];
         this.deckString = "";
         this.score = 0;
+        this.numberOfAces = 0;
         this.name = name;
     }
     Participant.prototype.add = function (card) {
@@ -66,6 +67,14 @@ var Participant = /** @class */ (function () {
         this.deck.push(card);
         // Update score
         this.score += card.cardValue;
+        if (card.cardValue == 11)
+            this.numberOfAces++;
+        // Downgrade any aces if it's a bust
+        if (this.isBust() && this.numberOfAces > 0) {
+            this.numberOfAces--;
+            this.score -= 10;
+            ;
+        }
     };
     Participant.prototype.printStatus = function (hidden) {
         if (hidden)
@@ -77,9 +86,9 @@ var Participant = /** @class */ (function () {
     Participant.prototype.reset = function () {
         this.deckString = "";
         this.score = 0;
+        this.numberOfAces = 0;
         // Copy the cards in deck into tempDeck
-        var tempDeck = [];
-        tempDeck.concat(this.deck);
+        var tempDeck = this.deck;
         // Empty deck
         this.deck = [];
         return tempDeck;
@@ -92,6 +101,7 @@ var Participant = /** @class */ (function () {
 var Game = /** @class */ (function () {
     function Game() {
         this.gameDeck = [];
+        this.discardedCards = [];
         // Initialize Dealer and Player
         this.dealer = new Participant("Dealer");
         this.player = new Participant("Player");
@@ -99,6 +109,7 @@ var Game = /** @class */ (function () {
         for (var i = 0; i < 52; i++) {
             this.gameDeck.push(new Card(i));
         }
+        this.shuffle();
         console.log("----------------------------------------------------");
         console.log("\n\n----  |    ---   --- |   /    -----  ---   --- |   /");
         console.log("|   | |   |   | |    |  /       |   |   | |    |  /");
@@ -117,24 +128,47 @@ var Game = /** @class */ (function () {
             this.gameDeck[secondCardIndex] = temp;
         }
     };
+    Game.prototype.mainMenu = function () {
+        var _a, _b, _c;
+        while (true) {
+            var option = "";
+            while (option !== 'q' && option !== 'p') {
+                option = readline.question("Type 'p' to play a game or 'q' to quit: ");
+            }
+            // Quit mainMenu if q is entered
+            if (option === 'q')
+                return;
+            // Put cards used last game into discardedCards
+            (_a = this.discardedCards).push.apply(_a, this.player.reset());
+            (_b = this.discardedCards).push.apply(_b, this.dealer.reset());
+            // Re-add discardedCards to gameDeck and shuffle
+            if (this.gameDeck.length < 30) {
+                (_c = this.gameDeck).push.apply(_c, this.discardedCards);
+                this.shuffle();
+                this.discardedCards = [];
+            }
+            this.hostGame();
+        }
+    };
     Game.prototype.hostGame = function () {
-        this.shuffle();
+        console.log("\n-------------------\nStarting Game . . .\n-------------------\n");
         // Give Dealer 2 cards and print 1
         this.dealer.add(this.gameDeck.pop());
         this.dealer.add(this.gameDeck.pop());
         this.dealer.printStatus(true);
-        console.log("\n");
         // Give Player 2 cards and print both
+        console.log("\n");
         this.player.add(this.gameDeck.pop());
         this.player.add(this.gameDeck.pop());
         this.player.printStatus(false);
         // Player's turn
         console.log("\n-------------------\n   Player's Turn\n-------------------");
         while (this.player.score !== 21) {
+            console.log("");
             var move = "";
             // Keep asking for a valid input
             while (move != 'h' && move != 's') {
-                move = readline.question("\nType 'h' to hit or 's' to stay: ");
+                move = readline.question("Type 'h' to hit or 's' to stay: ");
             }
             if (move === 's')
                 break;
@@ -149,8 +183,11 @@ var Game = /** @class */ (function () {
                 return;
             }
         }
+        if (this.player.score === 21)
+            console.log("\nBLACK JACK!");
         // Dealer's turn
-        console.log("\n-------------------\n   Dealer's Turn\n-------------------");
+        console.log("\n-------------------\n   Dealer's Turn\n-------------------\n");
+        this.dealer.printStatus(false);
         while (this.dealer.score < 17) {
             // Add card to dealer's deck
             var cardDealt = this.gameDeck.pop();
@@ -163,8 +200,10 @@ var Game = /** @class */ (function () {
                 return;
             }
         }
+        if (this.dealer.score === 21)
+            console.log("\nBLACK JACK!");
         // Print the result of the game
-        console.log("\nPlayer scored", this.player.score, "and Dealer scored", this.dealer.score);
+        console.log("\nPlayer scored", this.player.score, "and Dealer scored", this.dealer.score, "\n");
         switch (true) {
             case (this.player.score == this.dealer.score):
                 console.log("The scores are tied and both push");
@@ -179,5 +218,5 @@ var Game = /** @class */ (function () {
     };
     return Game;
 }());
-var x = new Game();
-x.hostGame();
+var myGame = new Game();
+myGame.mainMenu();

@@ -61,6 +61,7 @@ class Participant {
 	deck: Card[] = [];
 	deckString: string = "";
 	score: number = 0;
+	numberOfAces: number = 0;
 
 	constructor(name: string) {
 		this.name = name;
@@ -74,6 +75,12 @@ class Participant {
 		this.deck.push(card);
 		// Update score
 		this.score += card.cardValue;
+		if (card.cardValue == 11) this.numberOfAces++;
+		// Downgrade any aces if it's a bust
+		if (this.isBust() && this.numberOfAces > 0) {
+			this.numberOfAces--;
+			this.score -= 10;;
+		}
 	}
 
 	printStatus(hidden: boolean): void {
@@ -86,9 +93,9 @@ class Participant {
 	reset(): Card[] {
 		this.deckString = "";
 		this.score = 0;
+		this.numberOfAces = 0;
 		// Copy the cards in deck into tempDeck
-		let tempDeck: Card[] = [];
-		tempDeck.concat(this.deck);
+		let tempDeck: Card[] = this.deck;
 		// Empty deck
 		this.deck = [];
 		return tempDeck;
@@ -103,6 +110,7 @@ class Participant {
 class Game {
 
 	gameDeck: Card[] = [];
+	discardedCards: Card[] = [];
 	dealer: Participant;
 	player: Participant;
 
@@ -115,6 +123,7 @@ class Game {
 		for (let i=0; i < 52; i++) {
 			this.gameDeck.push(new Card(i));
 		}
+		this.shuffle();
 
 		console.log("----------------------------------------------------");
 		console.log("\n\n----  |    ---   --- |   /    -----  ---   --- |   /");
@@ -137,17 +146,38 @@ class Game {
 		}
 	}
 
+	mainMenu(): void {
+		while (true) {
+			let option: string = "";
+			while (option !== 'q' && option !== 'p') {
+				option = readline.question("Type 'p' to play a game or 'q' to quit: ");
+			}
+			// Quit mainMenu if q is entered
+			if (option === 'q') return;
+			// Put cards used last game into discardedCards
+			this.discardedCards.push(...this.player.reset());
+			this.discardedCards.push(...this.dealer.reset());
+			// Re-add discardedCards to gameDeck and shuffle
+			if (this.gameDeck.length < 30) {
+				this.gameDeck.push(...this.discardedCards);
+				this.shuffle();
+				this.discardedCards = [];
+			}
+			this.hostGame();
+		}
+	}
+
 	hostGame(): void {
 
-		this.shuffle();
+		console.log("\n-------------------\nStarting Game . . .\n-------------------\n");
 
 		// Give Dealer 2 cards and print 1
 		this.dealer.add(this.gameDeck.pop());
 		this.dealer.add(this.gameDeck.pop());
 		this.dealer.printStatus(true);
-		console.log("\n");
 
 		// Give Player 2 cards and print both
+		console.log("\n");
 		this.player.add(this.gameDeck.pop());
 		this.player.add(this.gameDeck.pop());
 		this.player.printStatus(false);
@@ -155,11 +185,12 @@ class Game {
 		// Player's turn
 		console.log("\n-------------------\n   Player's Turn\n-------------------");
 		while(this.player.score !== 21) {
+			console.log("");
 			let move: string = "";
 
 			// Keep asking for a valid input
 			while(move!='h' && move!='s'){
-				move = readline.question("\nType 'h' to hit or 's' to stay: ");
+				move = readline.question("Type 'h' to hit or 's' to stay: ");
 			}
 			if (move === 's') break;
 
@@ -175,9 +206,11 @@ class Game {
 				return; 
 			} 
 		}
+		if (this.player.score === 21) console.log("\nBLACK JACK!");
 
 		// Dealer's turn
-		console.log("\n-------------------\n   Dealer's Turn\n-------------------");
+		console.log("\n-------------------\n   Dealer's Turn\n-------------------\n");
+		this.dealer.printStatus(false);
 		while(this.dealer.score < 17) {
 			// Add card to dealer's deck
 			let cardDealt = this.gameDeck.pop();
@@ -191,9 +224,10 @@ class Game {
 				return; 
 			} 
 		}
+		if (this.dealer.score === 21) console.log("\nBLACK JACK!");
 
 		// Print the result of the game
-		console.log("\nPlayer scored",this.player.score,"and Dealer scored",this.dealer.score);
+		console.log("\nPlayer scored",this.player.score,"and Dealer scored",this.dealer.score,"\n");
 		switch (true) {
 			case (this.player.score == this.dealer.score):
 				console.log("The scores are tied and both push");
@@ -206,24 +240,9 @@ class Game {
 				break;
 		}
 
-
 	}
+
 }
-let x: Game = new Game();
-x.hostGame();
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+let myGame: Game = new Game();
+myGame.mainMenu();
