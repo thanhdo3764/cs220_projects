@@ -198,6 +198,21 @@ class Game {
 	}
 
 	/**
+	 * Adds a card to the participant, prints the card dealt
+	 * and prints the participant's status
+	 */
+	 dealCard(participant: Participant, numberOfCards: number, 
+	 	shouldPrint:boolean, hidden: boolean): void {
+
+	 	for(let i=0; i<numberOfCards; i++) {
+	 		let cardDealt = this.gameDeck.pop()!;
+			participant.add(cardDealt);
+			if (shouldPrint) console.log("\n"+participant.name,"was dealt a",cardDealt.cardString+"\n");
+	 	}
+	 	participant.printStatus(hidden);
+	 } 
+
+	/**
 	 * Infinitely prompts the user to play or quit. This will be the
 	 * method that users outside of the class will interact with to
 	 * start a game. If the user types 'q',then it essentially 
@@ -255,34 +270,24 @@ class Game {
 		console.log("\n-------------------\nSTARTING GAME . . .\n-------------------\n");
 
 		// Give Dealer 2 cards and print 1
-		this.dealer.add(this.gameDeck.pop()!);
-		this.dealer.add(this.gameDeck.pop()!);
-		this.dealer.printStatus(true);
+		this.dealCard(this.dealer, 2, false, true)
 
 		// Give Player 2 cards and print both
 		console.log("\n");
-		this.player.add(this.gameDeck.pop()!);
-		this.player.add(this.gameDeck.pop()!);
-		this.player.printStatus(false);
+		this.dealCard(this.player, 2, false, false)
 
 		// Player's turn
 		console.log("\n-------------------\n   PLAYER'S TURN\n-------------------");
 		while(this.player.score !== 21) {
 			console.log("");
 			let move: string = "";
-
 			// Keep asking for a valid input
 			while(move!='h' && move!='s'){
 				move = readline.question("Type 'h' to hit or 's' to stay: ");
 			}
 			if (move === 's') break;
-
 			// Add card to player's deck
-			let cardDealt = this.gameDeck.pop()!;
-			this.player.add(cardDealt);
-			console.log("Player was dealt a",cardDealt.cardString+"\n");
-			this.player.printStatus(false);
-
+			this.dealCard(this.player, 1, true, false);
 			// Stop game if player busted
 			if (this.player.isBust()) {
 				console.log("\nPlayer busted. Dealer wins!");
@@ -296,11 +301,7 @@ class Game {
 		this.dealer.printStatus(false);
 		while(this.dealer.score < 17) {
 			// Add card to dealer's deck
-			let cardDealt = this.gameDeck.pop()!;
-			this.dealer.add(cardDealt);
-			console.log("\nDealer was dealt a",cardDealt.cardString+"\n");
-			this.dealer.printStatus(false);
-
+			this.dealCard(this.dealer, 1, true, false);
 			// Stop game if dealer busted
 			if (this.dealer.isBust()) {
 				console.log("\nDealer busted. Player wins!");
