@@ -74,7 +74,6 @@ class Participant {
     constructor(name) {
         this.name = "";
         this.deck = [];
-        this.deckString = "";
         this.score = 0;
         this.numberOfAces = 0;
         this.name = name;
@@ -86,10 +85,6 @@ class Participant {
      * for busts by decreasing the value of aces by 10.
      */
     add(card) {
-        // Add a comma to separate cards in deckString
-        if (this.deck.length !== 0)
-            this.deckString += ", ";
-        this.deckString += card.cardString;
         // Add card to deck
         this.deck.push(card);
         // Update score
@@ -109,10 +104,17 @@ class Participant {
      * If hidden is true, print the name and one card.
      */
     printStatus(hidden) {
-        if (hidden)
-            console.log(this.name + "'s Cards:", this.deck[0].cardString, "and one hidden card");
+        if (hidden) {
+            console.log(this.name + "'s Cards:");
+            this.deck[0].printCard();
+            console.log("Hidden Card");
+        }
         else {
-            console.log(this.name + "'s Cards:", this.deckString, "\n" + this.name + "'s Score:", this.score);
+            console.log(this.name + "'s Cards:");
+            for (let card of this.deck) {
+                card.printCard();
+            }
+            console.log(this.name + "'s Score:", this.score);
         }
     }
     /**
@@ -121,7 +123,6 @@ class Participant {
      * be pushed back into the gameDeck.
      */
     reset() {
-        this.deckString = "";
         this.score = 0;
         this.numberOfAces = 0;
         // Copy the cards in deck into tempDeck
