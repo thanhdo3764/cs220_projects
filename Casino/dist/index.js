@@ -18,27 +18,29 @@ class Gambler {
     bankrupt() {
         return this._balance <= 0 ? true : false;
     }
-    get balance() { return this._balance; }
     get bet() { return this._bet; }
+    get balance() { return this._balance; }
 }
 class StableGambler extends Gambler {
     constructor() {
         super(...arguments);
         this._targetBalance = 2 * this._balance;
     }
-    updateStatus(moneyEarned) {
+    updateBalance(moneyEarned) {
         this._balance += moneyEarned;
+        if (this._bet > this._balance)
+            this._bet = this._balance;
     }
 }
 class HighRiskGambler extends Gambler {
     constructor() {
         super(...arguments);
         this._targetBalance = 5 * this._balance;
-        this._yoloAmount = 10;
+        this._yoloAmount = 20;
     }
-    updateStatus(moneyEarned) {
+    updateBalance(moneyEarned) {
         this._balance += moneyEarned;
-        this.balance > this._yoloAmount ? this._bet = this._balance / 2 : this._bet = this.balance;
+        this._balance > this._yoloAmount ? this._bet = this._balance / 2 : this._bet = this._balance;
     }
 }
 class StreakGambler extends Gambler {
@@ -52,25 +54,111 @@ class StreakGambler extends Gambler {
         this._winMultiplier = winMultiplier;
         this._lossMultiplier = lossMultiplier;
     }
-    updateStatus(moneyEarned) {
+    updateBalance(moneyEarned) {
         this._balance += moneyEarned;
-        if (moneyEarned === 0) {
+        if (moneyEarned <= 0) {
             this._bet *= this._lossMultiplier;
-            if (this.bet < this._minBet)
+            if (this._bet < this._minBet)
                 this._bet = this._minBet;
         }
         else {
             this._bet *= this._winMultiplier;
         }
+        if (this._bet > this._balance)
+            this._bet = this._balance;
     }
 }
 class Game {
     constructor(casino) {
         this.name = "";
+        this.pot = 0;
+        this.gameCasino = casino;
         this.players = new Map;
     }
     addPlayer(player, bet) {
         this.players.set(player, bet);
+        this.pot += bet;
+    }
+    printStart() {
+        console.log("-".repeat(this.name.length) + "\n" + this.name + "\n" + "-".repeat(this.name.length) + "\n");
+        for (let [player, bet] of this.players) {
+            console.log("\t" + player.name, "bets $" + bet);
+        }
+    }
+    gameResultHelper(isWin, player, playerProfit) {
+        player.updateBalance(playerProfit);
+        if (isWin)
+            console.log("\t" + player.name, "won $" + (playerProfit));
+        else
+            console.log("\t" + player.name, "lost!");
+        this.gameCasino.addProfit(-1 * playerProfit);
+        this.players.delete(player);
+    }
+}
+class TailsIWin extends Game {
+    constructor() {
+        super(...arguments);
+        this.name = "TAILS, I WIN";
+    }
+    simulateGame() {
+        console.log();
+        this.printStart();
+        console.log();
+        console.log("The dealer is flipping a coin...");
+        let isHeads = !!Math.floor(Math.random() * 2);
+        console.log("It's", isHeads ? "Heads!\n" : "Tails!\n");
+        for (let [player, bet] of this.players) {
+            let playerProfit = isHeads ? bet * 1.9 - bet : -1 * bet;
+            this.gameResultHelper(isHeads, player, playerProfit);
+        }
+        console.log();
+    }
+}
+class GuessTheNumber extends Game {
+    constructor() {
+        super(...arguments);
+        this.name = "GUESS THE NUMBER";
+    }
+    simulateGame() {
+        let casinoProfit = 0;
+        console.log();
+        this.printStart();
+        console.log();
+        console.log("The dealer is choosing a number...");
+        let randomNumber = Math.floor(Math.random() * 5);
+        console.log("The number was", randomNumber + "\n");
+        for (let [player, bet] of this.players) {
+            let playerGuess = Math.floor(Math.random() * 5);
+            console.log(player.name, "guesses", playerGuess);
+            let numbersMatch = playerGuess === randomNumber;
+            let playerProfit = numbersMatch ? bet * 4.5 - bet : -1 * bet;
+            this.gameResultHelper(numbersMatch, player, playerProfit);
+        }
+        console.log();
+    }
+}
+class OffTrackGuineaPigRacing extends Game {
+    constructor() {
+        super(...arguments);
+        this.name = "OFF-TRACK GUINEA PIG RACING";
+    }
+    simulateGame() {
+        let casinoProfit = 0;
+        let pigMultiplier = [1.9, 3.8, 7.6, 7.6];
+        console.log();
+        this.printStart();
+        console.log();
+        console.log("The pigs are off...");
+        let randomPig = [0, 0, 0, 0, 1, 1, 2, 3][Math.floor(Math.random() * 8)];
+        console.log("The winning pig was", randomPig + "\n");
+        for (let [player, bet] of this.players) {
+            let playerGuess = Math.floor(Math.random() * 4);
+            console.log(player.name, "betted on pig", playerGuess);
+            let numbersMatch = playerGuess === randomPig;
+            let playerProfit = numbersMatch ? bet * pigMultiplier[playerGuess] - bet : -1 * bet;
+            this.gameResultHelper(numbersMatch, player, playerProfit);
+        }
+        console.log();
     }
 }
 class Casino {
@@ -174,3 +262,5 @@ class Casino {
         }
     }
 }
+let x = new Casino(5);
+x.simulate();
