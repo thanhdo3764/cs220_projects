@@ -1,34 +1,9 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const readline_sync_1 = __importDefault(require("readline-sync"));
-const react_1 = __importStar(require("react"));
-const client_1 = require("react-dom/client");
 var Rank;
 (function (Rank) {
     Rank[Rank["Ace"] = 1] = "Ace";
@@ -141,6 +116,8 @@ class Game {
         this.stock = [];
         this.pile = [];
         this.participants = [];
+        this.topCard = this.pile[0];
+        this.turn = 0;
         this.participants.push(new Participant("Player"));
         this.participants.push(new Participant("Bot 1"));
         this.participants.push(new Participant("Bot 2"));
@@ -207,50 +184,57 @@ class Game {
         }
         return new Card(0x1F000 | 0xA0);
     }
-    /**
-     * Simulates the player's turn by asking for input until a card
-     * is played. Return the card or suit played.
-     */
-    playerTurn(p, topCard) {
-        let cmd = '';
-        while (cmd !== 'p') {
-            // Ask for command
-            cmd = readline_sync_1.default.question("Type (p)lace or (c)ycle or (d)raw: ");
-            switch (cmd) {
-                case ('p'):
-                    // Re-ask question if card was unplayable
-                    let cardInQuestion = p.playCard(topCard.rank, topCard.suit);
-                    if (cardInQuestion === undefined) {
-                        cmd = '';
-                        break;
-                    }
-                    topCard = cardInQuestion;
-                    this.pile.push(topCard);
-                    // Ask for suit if player played an Eight
-                    if (topCard.rank === Rank.Eight) {
-                        let newCmd = '';
-                        while (newCmd !== 's' && newCmd !== 'c' && newCmd !== 'd' && newCmd !== 'h') {
-                            newCmd = readline_sync_1.default.question("Type (s)pades or (c)lubs or (d)iamonds or (h)earts: ");
-                        }
-                        topCard = this.switchSuit(newCmd);
-                    }
-                    break;
-                case ('c'):
-                    p.cycleCard();
-                    break;
-                case ('d'):
-                    p.add(this.dealCard());
-                    console.log("Player was dealt the", p.hand[p.hand.length - 1].cardString);
-                    break;
+    onClickPlay() {
+        // Player Turn
+        const player = this.participants[0];
+        let cardInQuestion = player.playCard(this.topCard.rank, this.topCard.suit);
+        if (cardInQuestion === undefined) {
+            return false;
+        }
+        this.topCard = cardInQuestion;
+        this.pile.push(this.topCard);
+        // Ask for suit if player played an Eight
+        if (this.topCard.rank === Rank.Eight) {
+            let newCmd = '';
+            while (newCmd !== 's' && newCmd !== 'c' && newCmd !== 'd' && newCmd !== 'h') {
+                newCmd = readline_sync_1.default.question("Type (s)pades or (c)lubs or (d)iamonds or (h)earts: ");
+            }
+            this.topCard = this.switchSuit(newCmd);
+        }
+        if (player.hasWon()) {
+            console.log("Player has won!");
+            return true;
+        }
+        //Bots' Turn
+        for (let i = 1; i < 4; i++) {
+            let bot = this.participants[i];
+            // Bot draws cards until it's playable
+            while (!bot.hasPlayableCard(this.topCard.rank, this.topCard.suit))
+                bot.add(this.dealCard());
+            this.topCard = bot.playCard(this.topCard.rank, this.topCard.suit);
+            this.pile.push(this.topCard);
+            // If Bot played an Eight, choose a random suit
+            if (this.topCard.rank === Rank.Eight)
+                this.topCard = this.switchSuit(Math.floor(Math.random() * 4));
+            if (bot.hasWon()) {
+                console.log(bot.name, "has won!");
+                return true;
             }
         }
-        return topCard;
+        return false;
+    }
+    onClickCycle() {
+        this.participants[0].cycleCard();
+    }
+    onClickDraw() {
+        let cardDealt = this.dealCard();
+        this.participants[0].add(cardDealt);
+        console.log("Player was dealt the", cardDealt.cardString);
     }
     /**
      * Simulates a game of Crazy Eights
      */
     hostGame() {
-        let topCard;
         // Deal 5 cards to all participants
         for (let i = 0; i < 5; i++) {
             for (let p of this.participants) {
@@ -259,40 +243,31 @@ class Game {
         }
         // Place a starter card 
         while (true) {
-            topCard = this.stock.pop();
-            this.pile.push(topCard);
-            if (topCard.rank !== Rank.Eight)
+            this.topCard = this.stock.pop();
+            this.pile.push(this.topCard);
+            if (this.topCard.rank !== Rank.Eight)
                 break;
         }
-        // Loop until there is a winner
+        let player = this.participants[0];
+        // Loop through the participants' turn
+        let cmd = '';
         let hasWinner = false;
         while (!hasWinner) {
-            // Loop through the participants' turn
-            for (let p of this.participants) {
-                console.log("\nTop card is", topCard.cardString);
-                // Player's Turn
-                if (p.name === "Player") {
-                    p.printHand();
-                    console.log("\nPlayer is holding the", p.hand[p.handIndex].cardString);
-                    // Question player for card to add
-                    topCard = this.playerTurn(p, topCard);
-                    // Bots' Turn
-                }
-                else {
-                    // Bot draws cards until it's playable
-                    while (!p.hasPlayableCard(topCard.rank, topCard.suit))
-                        p.add(this.dealCard());
-                    topCard = p.playCard(topCard.rank, topCard.suit);
-                    this.pile.push(topCard);
-                    // If Bot played an Eight, choose a random suit
-                    if (topCard.rank === Rank.Eight)
-                        topCard = this.switchSuit(Math.floor(Math.random() * 4));
-                }
-                if (p.hasWon()) {
-                    console.log(p.name, "has won!");
-                    hasWinner = true;
+            console.log("\nTop card is", this.topCard.cardString);
+            player.printHand();
+            console.log("\nPlayer is holding the", player.hand[player.handIndex].cardString);
+            // Ask for command
+            cmd = readline_sync_1.default.question("Type (p)lace or (c)ycle or (d)raw: ");
+            switch (cmd) {
+                case ('p'):
+                    hasWinner = this.onClickPlay();
                     break;
-                }
+                case ('c'):
+                    this.onClickCycle();
+                    break;
+                case ('d'):
+                    this.onClickDraw();
+                    break;
             }
         }
     }
@@ -313,54 +288,6 @@ class Game {
         }
     }
 }
-class MyListState {
-    constructor() {
-        this.nClicks = 0;
-    }
-}
-class MyList extends react_1.Component {
-    constructor(props) {
-        super(props);
-        this.state = new MyListState();
-        this.addClick = this.addClick.bind(this);
-    }
-    render() {
-        var _a;
-        const children = react_1.default.Children.toArray(this.props.children);
-        const result = [];
-        const nChildren = (_a = this.props.maxItems) !== null && _a !== void 0 ? _a : children.length;
-        for (let child = 0; child < Math.min(nChildren, children.length); child++) {
-            result.push(children[child]);
-        }
-        result.push(<li>You have clicked {this.state.nClicks} times.</li>);
-        return <ul onClick={this.addClick}>{result}</ul>;
-    }
-    addClick() {
-        let newState = new MyListState();
-        newState.nClicks = this.state.nClicks + 1;
-        this.setState(newState);
-    }
-}
-class App extends react_1.Component {
-    render() {
-        return <div>
-            <p>Crazy Eights</p>
-            <MyList maxItems={2}>
-                <li>one</li>
-                <li>two</li>
-                <li>three</li>
-            </MyList>
-        </div>;
-    }
-}
-const rootElem = document.getElementById('root');
-if (rootElem == null) {
-    alert('you forgot to put a root element in your HTML file.');
-}
-const root = (0, client_1.createRoot)(rootElem);
-root.render(<react_1.StrictMode>
-        <App />
-    </react_1.StrictMode>);
 let g = new Game();
 g.hostGame();
 g.printGameStatus();

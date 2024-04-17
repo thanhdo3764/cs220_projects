@@ -142,6 +142,8 @@ class Game {
 	stock: Card[] = [];
 	pile: Card[] = [];
 	participants: Participant[] = []
+	topCard: Card = this.pile[0];
+	turn:number = 0;
 
 	constructor() {
 
@@ -219,54 +221,60 @@ class Game {
 		return new Card(0x1F000|0xA0);
 	}
 
-	/**
-	 * Simulates the player's turn by asking for input until a card
-	 * is played. Return the card or suit played.
-	 */ 
-	playerTurn(p:Participant, topCard:Card): Card {
-		let cmd = '';
-		while(cmd !== 'p') {
-			// Ask for command
-			cmd = readline.question("Type (p)lace or (c)ycle or (d)raw: ");
-			switch(cmd) {
-			case ('p'):
-				// Re-ask question if card was unplayable
-				let cardInQuestion = p.playCard(topCard.rank, topCard.suit);
-				if (cardInQuestion === undefined) {
-					cmd = '';
-					break;
-				}
-				topCard = cardInQuestion!;
-				this.pile.push(topCard);
-				// Ask for suit if player played an Eight
-				if (topCard.rank === Rank.Eight) {
-					let newCmd = '';
-					while (newCmd !== 's' && newCmd !== 'c' && newCmd !== 'd' && newCmd !== 'h') {
-						newCmd = readline.question("Type (s)pades or (c)lubs or (d)iamonds or (h)earts: ");
-					}
-					topCard = this.switchSuit(newCmd);
-				}
-				break;
+	onClickPlay(): boolean {
+		// Player Turn
+		const player = this.participants[0];
+		let cardInQuestion = player.playCard(this.topCard.rank, this.topCard.suit);
+		if (cardInQuestion === undefined) {
+			return false;
+		}
+		this.topCard = cardInQuestion!;
+		this.pile.push(this.topCard);
+		// Ask for suit if player played an Eight
+		if (this.topCard.rank === Rank.Eight) {
+			let newCmd = '';
+			while (newCmd !== 's' && newCmd !== 'c' && newCmd !== 'd' && newCmd !== 'h') {
+				newCmd = readline.question("Type (s)pades or (c)lubs or (d)iamonds or (h)earts: ");
+			}
+			this.topCard = this.switchSuit(newCmd);
+		}
+		if (player.hasWon()) {
+			console.log("Player has won!");
+			return true;
+		}
+		
+		//Bots' Turn
+		for (let i = 1; i < 4; i++) {
+			let bot = this.participants[i];
+			// Bot draws cards until it's playable
+			while (!bot.hasPlayableCard(this.topCard.rank, this.topCard.suit)) bot.add(this.dealCard());
+			this.topCard = bot.playCard(this.topCard.rank, this.topCard.suit)!;
+			this.pile.push(this.topCard);
+			// If Bot played an Eight, choose a random suit
+			if (this.topCard.rank === Rank.Eight) this.topCard = this.switchSuit(Math.floor(Math.random()*4));
 
-			case ('c'):
-				p.cycleCard();
-				break;
-			case ('d'):
-				p.add(this.dealCard());
-				console.log("Player was dealt the", p.hand[p.hand.length-1].cardString);
-				break;
+			if (bot.hasWon()) {
+				console.log(bot.name,"has won!");
+				return true;
 			}
 		}
-		return topCard;
+		return false;
+	}
 
+	onClickCycle(): void {
+		this.participants[0].cycleCard();
+	}
+
+	onClickDraw(): void {
+		let cardDealt = this.dealCard();
+		this.participants[0].add(cardDealt);
+		console.log("Player was dealt the", cardDealt.cardString);
 	}
 
 	/**
 	 * Simulates a game of Crazy Eights
 	 */ 
 	hostGame(): void {
-
-		let topCard:Card;
 
 		// Deal 5 cards to all participants
 		for (let i = 0; i < 5; i++) {
@@ -276,36 +284,32 @@ class Game {
 		}
 		// Place a starter card 
 		while (true) {
-			topCard = this.stock.pop()!;
-			this.pile.push(topCard);
-			if (topCard.rank !== Rank.Eight) break;
+			this.topCard = this.stock.pop()!;
+			this.pile.push(this.topCard);
+			if (this.topCard.rank !== Rank.Eight) break;
 		}
-		// Loop until there is a winner
+
+		let player = this.participants[0];
+
+		// Loop through the participants' turn
+		let cmd = '';
 		let hasWinner = false;
-		while (!hasWinner) {
-			// Loop through the participants' turn
-			for (let p of this.participants) {
-				console.log("\nTop card is",topCard.cardString);
-				// Player's Turn
-				if (p.name === "Player") {
-					p.printHand();
-					console.log("\nPlayer is holding the", p.hand[p.handIndex].cardString);
-					// Question player for card to add
-					topCard = this.playerTurn(p,topCard);
-				// Bots' Turn
-				} else {
-					// Bot draws cards until it's playable
-					while (!p.hasPlayableCard(topCard.rank, topCard.suit)) p.add(this.dealCard());
-					topCard = p.playCard(topCard.rank, topCard.suit)!;
-					this.pile.push(topCard);
-					// If Bot played an Eight, choose a random suit
-					if (topCard.rank === Rank.Eight) topCard = this.switchSuit(Math.floor(Math.random()*4));
-				}
-				if (p.hasWon()) {
-					console.log(p.name,"has won!");
-					hasWinner = true;
-					break;
-				}
+		while(!hasWinner) {
+			console.log("\nTop card is",this.topCard.cardString);
+			player.printHand();
+			console.log("\nPlayer is holding the", player.hand[player.handIndex].cardString);
+			// Ask for command
+			cmd = readline.question("Type (p)lace or (c)ycle or (d)raw: ");
+			switch(cmd) {
+			case ('p'):
+				hasWinner = this.onClickPlay();
+				break;
+			case ('c'):
+				this.onClickCycle();
+				break;
+			case ('d'):
+				this.onClickDraw();
+				break;
 			}
 		}
 
@@ -334,69 +338,6 @@ class Game {
 
 }
 
-interface MyListProps {
-    maxItems?: number;
-    children?: React.JSX.Element | React.JSX.Element[];
-}
-
-class MyListState {
-    nClicks : number = 0;
-}
-
-class MyList extends Component<MyListProps, MyListState> {
-    constructor(props: MyListProps) {
-        super(props);
-        this.state = new MyListState();
-        this.addClick = this.addClick.bind(this);
-    }
-
-    override render(): ReactNode {
-        const children = React.Children.toArray(this.props.children);
-        const result = []
-        const nChildren = this.props.maxItems ?? children.length;
-    
-        for( let child = 0; child < Math.min(nChildren, children.length); child++ ) {
-            result.push( children[child] );
-        }
-
-        result.push( <li>You have clicked {this.state.nClicks} times.</li> );
-
-        return <ul onClick={this.addClick}>{result}</ul>
-    }
-
-    addClick(): void {
-        let newState = new MyListState();
-        newState.nClicks = this.state.nClicks + 1;
-        this.setState( newState );
-    }
-}
-
-class App extends Component {
-    override render(): ReactNode {
-        return <div>
-            <p>Crazy Eights</p>
-            <MyList maxItems={2}>
-                <li>one</li>
-                <li>two</li>
-                <li>three</li>
-            </MyList>
-        </div>
-    }
-}
-
-const rootElem = document.getElementById('root');
-
-if( rootElem == null ) {
-    alert('you forgot to put a root element in your HTML file.');
-}
-
-const root = createRoot( rootElem as HTMLElement );
-
-root.render(
-    <StrictMode>
-        <App/>
-    </StrictMode>
-);
 
 let g = new Game();
 g.hostGame();
