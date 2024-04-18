@@ -1,4 +1,3 @@
-import readline from 'readline-sync';
 import React, { StrictMode, Component, ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 
@@ -25,26 +24,26 @@ enum Suit {
 	Hearts = 0xB0,
 }
 
-class Card {
+class Card extends Component{
 	
 	suit: Suit;
 	rank: Rank;
 	cardString: string = "";
 	
 	constructor(cardIndex: number) {
+		super({});
 		// Calculate the rank and suit of the card
 		this.suit = cardIndex & 0x000F0;
 		this.rank = cardIndex & 0x0000F;
 
 		// Convert card into a string
-		this.cardString =  String.fromCodePoint(0x1F000 | this.suit | this.rank)+" "+Rank[this.rank]+" of "+Suit[this.suit];
+		this.cardString =  String.fromCodePoint(0x1F000 | this.suit | this.rank);
 	}
 
-	/**
-	 *  Takes the cardString field and prints it to console
-	 */
-	printCard(): void {
-		console.log(this.cardString);
+	renderCard(): ReactNode {
+		let cardColor:string;
+		(this.suit === Suit.Diamonds || this.suit === Suit.Hearts) ? cardColor="red" : cardColor="black";
+		return <span className={"card"} style={{color:cardColor}}>{this.cardString}</span>;
 	}
 
 }
@@ -60,6 +59,7 @@ class Participant {
 		this.name = name;
 	
 	}
+
 	/**
 	 * Sets the handIndex to a playable card depending on the given
 	 * rank and suit and returns true or false otherwise
@@ -123,31 +123,32 @@ class Participant {
 		return this.hand.length == 0;
 	}
 
-	/**
-	 * Print the cards in hand
-	 */ 
-	printHand(): void {
+}
 
-		console.log(this.name+"'s Cards:");
-		for (let card of this.hand) {
-			card.printCard();
-		}
+interface GameProps {
+	something?: number;
+}
 
-	}
+class GameState {
+
+	cardInHand: Card = new Card(0x1F0A1);
+	playerCards: Card[] = [];
+	topCard: Card = new Card(0x1F0A1);
 
 }
 
-class Game {
+class Game extends Component<GameProps, GameState> {
 
 	stock: Card[] = [];
 	pile: Card[] = [];
+	player: Participant = new Participant("Player");
 	participants: Participant[] = []
 	topCard: Card = this.pile[0];
-	turn:number = 0;
+	
+	constructor(props:GameProps) {
+		super(props);
 
-	constructor() {
-
-		this.participants.push(new Participant("Player"));
+		this.participants.push(this.player);
 		this.participants.push(new Participant("Bot 1"));
 		this.participants.push(new Participant("Bot 2"));
 		this.participants.push(new Participant("Bot 3"));
@@ -159,11 +160,41 @@ class Game {
 				this.stock.push(new Card(0x1F000|suit|rank));
 			}
 		}
-		this.shuffleStock();
-		console.log("-------------");
-		console.log("Crazy Eight's");
-		console.log("-------------\n");
 
+		this.shuffleStock();
+		this.hostGame();
+
+		let newState = new GameState();
+		newState.cardInHand = this.player.hand[this.player.handIndex];
+		newState.topCard = this.topCard;
+		newState.playerCards = this.player.hand;
+		this.state = newState;
+
+	}
+
+	override render(): ReactNode {
+
+		let s = [];
+
+		for (let card of this.state.playerCards) {
+			s.push(card.renderCard())!;
+		}
+
+		return <div>
+            <p>Crazy Eights.</p>
+            <div>
+            	{this.state.topCard.renderCard()}
+        	</div>
+        	<div>
+	            {this.state.cardInHand.renderCard()}
+            </div>
+            <div id = "cards">
+            	{s}
+            </div>
+            <input type="button" value="Play Card" onClick={()=> this.onClickPlay()}/>
+            <input type="button" value="Cycle Card" onClick={()=> this.onClickCycle()}/>
+            <input type="button" value="Draw Card" onClick={()=> this.onClickDraw()}/>
+			</div>
 	}
 
 	/**
@@ -223,25 +254,27 @@ class Game {
 
 	onClickPlay(): boolean {
 		// Player Turn
-		const player = this.participants[0];
-		let cardInQuestion = player.playCard(this.topCard.rank, this.topCard.suit);
+		let cardInQuestion = this.player.playCard(this.topCard.rank, this.topCard.suit);
 		if (cardInQuestion === undefined) {
 			return false;
 		}
 		this.topCard = cardInQuestion!;
 		this.pile.push(this.topCard);
-		// Ask for suit if player played an Eight
-		if (this.topCard.rank === Rank.Eight) {
-			let newCmd = '';
-			while (newCmd !== 's' && newCmd !== 'c' && newCmd !== 'd' && newCmd !== 'h') {
-				newCmd = readline.question("Type (s)pades or (c)lubs or (d)iamonds or (h)earts: ");
-			}
-			this.topCard = this.switchSuit(newCmd);
-		}
-		if (player.hasWon()) {
-			console.log("Player has won!");
-			return true;
-		}
+
+		this.updateState;
+
+		// // Ask for suit if player played an Eight
+		// if (this.topCard.rank === Rank.Eight) {
+		// 	let newCmd = '';
+		// 	while (newCmd !== 's' && newCmd !== 'c' && newCmd !== 'd' && newCmd !== 'h') {
+		// 		newCmd = readline.question("Type (s)pades or (c)lubs or (d)iamonds or (h)earts: ");
+		// 	}
+		// 	this.topCard = this.switchSuit(newCmd);
+		// }
+		// if (this.player.hasWon()) {
+		// 	console.log("Player has won!");
+		// 	return true;
+		// }
 		
 		//Bots' Turn
 		for (let i = 1; i < 4; i++) {
@@ -253,6 +286,8 @@ class Game {
 			// If Bot played an Eight, choose a random suit
 			if (this.topCard.rank === Rank.Eight) this.topCard = this.switchSuit(Math.floor(Math.random()*4));
 
+			this.updateState();
+
 			if (bot.hasWon()) {
 				console.log(bot.name,"has won!");
 				return true;
@@ -262,13 +297,27 @@ class Game {
 	}
 
 	onClickCycle(): void {
-		this.participants[0].cycleCard();
+		this.player.cycleCard();
+
+		this.updateState();
 	}
 
 	onClickDraw(): void {
 		let cardDealt = this.dealCard();
-		this.participants[0].add(cardDealt);
+		this.player.add(cardDealt);
 		console.log("Player was dealt the", cardDealt.cardString);
+
+		this.updateState();
+
+		
+	}
+
+	updateState(): void {
+		let newState = new GameState();
+		newState.cardInHand = this.player.hand[this.player.handIndex];
+		newState.topCard = this.topCard;
+		newState.playerCards = this.player.hand;
+		this.setState(newState);
 	}
 
 	/**
@@ -289,56 +338,21 @@ class Game {
 			if (this.topCard.rank !== Rank.Eight) break;
 		}
 
-		let player = this.participants[0];
-
-		// Loop through the participants' turn
-		let cmd = '';
-		let hasWinner = false;
-		while(!hasWinner) {
-			console.log("\nTop card is",this.topCard.cardString);
-			player.printHand();
-			console.log("\nPlayer is holding the", player.hand[player.handIndex].cardString);
-			// Ask for command
-			cmd = readline.question("Type (p)lace or (c)ycle or (d)raw: ");
-			switch(cmd) {
-			case ('p'):
-				hasWinner = this.onClickPlay();
-				break;
-			case ('c'):
-				this.onClickCycle();
-				break;
-			case ('d'):
-				this.onClickDraw();
-				break;
-			}
-		}
-
-	}
-
-	printGameStatus(): void {
-
-		console.log("Card's in stock:");
-		for (let card of this.stock) {
-			card.printCard();
-		}
-		console.log("");
-
-		console.log("Card's in pile:");
-		for (let card of this.pile) {
-			card.printCard();
-		}
-		console.log("");
-
-		for (let p of this.participants) {
-			p.printHand();
-			console.log();
-		}
-
 	}
 
 }
 
+const rootElem = document.getElementById('root');
 
-let g = new Game();
-g.hostGame();
-g.printGameStatus();
+if( rootElem == null ) {
+    alert('you forgot to put a root element in your HTML file.');
+}
+
+const root = createRoot( rootElem as HTMLElement );
+
+root.render(
+    <StrictMode>
+        <Game/>
+    </StrictMode>
+);
+
