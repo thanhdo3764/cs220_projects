@@ -69,25 +69,26 @@ class Card {
     renderCard() {
         let cardColor;
         (this.suit === Suit.Diamonds || this.suit === Suit.Hearts) ? cardColor = "red" : cardColor = "black";
-        return <span style={{ color: cardColor }}>{this.cardString}</span>;
+        return <span style={{ color: cardColor, margin: 'auto' }}>{this.cardString}</span>;
     }
 }
 class Player {
     constructor(name) {
         this.name = "";
-        this.hand = [];
-        this.handIndex = 0;
+        this._hand = [];
+        this._handIndex = 0;
         this.name = name;
     }
+    get hand() { return this._hand; }
+    get handIndex() { return this._handIndex; }
     /**
      * Sets the handIndex to a playable card depending on the given
      * rank and suit and returns true or false otherwise
      */
     hasPlayableCard(rank, suit) {
-        // Loops through the hand to find a playable card
-        for (let i = 0; i < this.hand.length; i++) {
-            if (this.hand[i].suit === suit || this.hand[i].rank === rank || this.hand[i].rank === Rank.Eight) {
-                this.handIndex = i;
+        for (let i = 0; i < this._hand.length; i++) {
+            if (this._hand[i].suit === suit || this._hand[i].rank === rank || this._hand[i].rank === Rank.Eight) {
+                this._handIndex = i;
                 return true;
             }
         }
@@ -98,11 +99,11 @@ class Player {
      * rank and suit, otherwise, return undefined.
      */
     playCard(rank, suit) {
-        let cardInHand = this.hand[this.handIndex];
+        let cardInHand = this._hand[this._handIndex];
         // If the card has the same suit, rank, or is an eight, play card.
         if (cardInHand.suit === suit || cardInHand.rank === rank || cardInHand.rank === Rank.Eight) {
-            let removedCard = this.hand.splice(this.handIndex, 1);
-            this.handIndex = 0;
+            let removedCard = this.hand.splice(this._handIndex, 1);
+            this._handIndex = 0;
             return removedCard[0];
         }
         return undefined;
@@ -111,20 +112,20 @@ class Player {
      * Add a card to hand, and set the handIndex to this card
      */
     add(card) {
-        this.hand.push(card);
-        this.handIndex = this.hand.length - 1;
+        this._hand.push(card);
+        this._handIndex = this._hand.length - 1;
     }
     /**
      * Cycles to the next card in hand
      */
     cycleCard() {
-        this.handIndex = ++this.handIndex % this.hand.length;
+        this._handIndex = ++this._handIndex % this._hand.length;
     }
     /**
      * Check if the participant has an empty hand
      */
     hasWon() {
-        return this.hand.length == 0;
+        return this._hand.length == 0;
     }
 }
 class GameState {
@@ -134,6 +135,7 @@ class GameState {
         this.topCard = new Card(0x1F0A1);
         this.changingSuit = false;
         this.whoseTurn = 0;
+        this.winner = "none";
     }
 }
 class Game extends react_1.Component {
@@ -143,7 +145,6 @@ class Game extends react_1.Component {
         this.pile = [];
         this.player = new Player("Player");
         this.participants = [];
-        this.whoseTurn = 0;
         /**
          * Helper function to add delay between bot turns
          */
@@ -154,7 +155,7 @@ class Game extends react_1.Component {
         this.participants.push(new Player("Bot 1"));
         this.participants.push(new Player("Bot 2"));
         this.participants.push(new Player("Bot 3"));
-        // Initialize gameDeck with all 52 cards
+        // Initialize Deck with all 52 cards into stock
         for (let suit = 0xA0; suit <= 0xD0; suit += 0x10) {
             for (let rank = 0x01; rank <= 0x0E; rank += 0x01) {
                 if (rank === 0x0C)
@@ -188,31 +189,44 @@ class Game extends react_1.Component {
      * Renders html whenever this.state changes
      */
     render() {
+        // Render for topCard
+        let tc;
+        if (this.state.winner === "none") {
+            tc = this.state.topCard.renderCard();
+        }
+        else {
+            tc = <span style={{ fontSize: '80px', textAlign: 'center', margin: 'auto' }}> {this.state.winner} </span>;
+        }
+        // Render for playerCards
         let s = [];
         for (let card of this.state.playerCards) {
             s.push(card.renderCard());
         }
+        //Render for cardInHand
+        let renderCardInHand;
+        if (!!this.state.cardInHand)
+            renderCardInHand = this.state.cardInHand.renderCard();
         return <div style={{ display: 'grid' }}>
             <h1>Crazy Eights</h1>
             <div className="topCard">
-            	{this.state.topCard.renderCard()}
+	            {tc}
         	</div>
         	<div className="playerCards">
-	            {this.state.cardInHand.renderCard()}
+	            {renderCardInHand}
             </div>
-            <div className="playerCards" style={{ display: 'block', margin: 'auto' }}>
+            <div className="playerCards">
             	{s}
             </div>
             <div style={{ display: 'block', margin: 'auto' }}>
-            <input type="button" className="button" value="Play Card" disabled={!!this.state.whoseTurn} onClick={() => this.onClickPlay()}/>
-            <input type="button" className="button" value="Cycle Card" disabled={!!this.state.whoseTurn} onClick={() => this.onClickCycle()}/>
-            <input type="button" className="button" value="Draw Card" disabled={!!this.state.whoseTurn} onClick={() => this.onClickDraw()}/>
+            <input type="button" className="button" value="Play Card" disabled={!!this.state.whoseTurn || this.state.winner !== "none"} onClick={() => this.onClickPlay()}/>
+            <input type="button" className="button" value="Cycle Card" disabled={!!this.state.whoseTurn || this.state.winner !== "none"} onClick={() => this.onClickCycle()}/>
+            <input type="button" className="button" value="Draw Card" disabled={!!this.state.whoseTurn || this.state.winner !== "none"} onClick={() => this.onClickDraw()}/>
             </div>
             <div style={{ display: 'block', margin: 'auto' }}>
-                <input type="button" className="suitButton" id="s" value="♠" disabled={!this.state.changingSuit} onClick={() => { this.switchSuit('s'); this.botTurn(); }}/>
-                <input type="button" className="suitButton" id="c" value="♣" disabled={!this.state.changingSuit} onClick={() => { this.switchSuit('c'); this.botTurn(); }}/>
-                <input type="button" className="suitButton" id="d" value="♦" disabled={!this.state.changingSuit} onClick={() => { this.switchSuit('d'); this.botTurn(); }}/>
-                <input type="button" className="suitButton" id="h" value="♥" disabled={!this.state.changingSuit} onClick={() => { this.switchSuit('h'); this.botTurn(); }}/>
+                <input type="button" className="suitButton" id="s" value="♠" disabled={!this.state.changingSuit} onClick={() => { this.switchSuit(0); this.botTurn(); }}/>
+                <input type="button" className="suitButton" id="c" value="♣" disabled={!this.state.changingSuit} onClick={() => { this.switchSuit(1); this.botTurn(); }}/>
+                <input type="button" className="suitButton" id="d" value="♦" disabled={!this.state.changingSuit} onClick={() => { this.switchSuit(2); this.botTurn(); }}/>
+                <input type="button" className="suitButton" id="h" value="♥" disabled={!this.state.changingSuit} onClick={() => { this.switchSuit(3); this.botTurn(); }}/>
 			</div>
 			</div>;
     }
@@ -220,6 +234,8 @@ class Game extends react_1.Component {
      * Shuffles the cards in stock
      */
     shuffleStock() {
+        if (this.stock.length === 0)
+            return;
         for (let i = 0; i < 51; i++) {
             let firstCardIndex = Math.floor(Math.random() * this.stock.length);
             let secondCardIndex = Math.floor(Math.random() * this.stock.length);
@@ -246,23 +262,23 @@ class Game extends react_1.Component {
     switchSuit(suitCmd) {
         let card = new Card(0x1F000);
         switch (suitCmd) {
+            // Spades
             case (0):
-            case ('s'):
                 card.suit = Suit.Spades;
                 card.cardString = '♠';
                 break;
+            // Clubs
             case (1):
-            case ('c'):
                 card.suit = Suit.Clubs;
                 card.cardString = '♣';
                 break;
+            // Diamonds
             case (2):
-            case ('d'):
                 card.suit = Suit.Diamonds;
                 card.cardString = '♦';
                 break;
+            // Hearts
             case (3):
-            case ('h'):
                 card.suit = Suit.Hearts;
                 card.cardString = '♥';
                 break;
@@ -273,29 +289,29 @@ class Game extends react_1.Component {
      * Handles when the player clicks the "play card" button
      */
     onClickPlay() {
-        let cardInQuestion = this.player.playCard(this.state.topCard.rank, this.state.topCard.suit);
-        if (cardInQuestion === undefined) {
-            return;
-        }
-        this.whoseTurn = 1;
-        this.pile.push(cardInQuestion);
-        this.setState(() => ({
-            cardInHand: this.player.hand[this.player.handIndex],
-            topCard: cardInQuestion,
-            playerCards: this.player.hand,
-            whoseTurn: 1,
-        }));
-        // Ask for suit if player played an Eight
-        if (cardInQuestion.rank === Rank.Eight) {
-            this.setState(() => ({ changingSuit: true }));
-        }
-        else if (this.player.hasWon()) {
-            console.log("Player has won!");
-            return;
-        }
-        else {
-            this.botTurn();
-        }
+        return __awaiter(this, void 0, void 0, function* () {
+            let cardInQuestion = this.player.playCard(this.state.topCard.rank, this.state.topCard.suit);
+            if (cardInQuestion === undefined) {
+                return;
+            }
+            this.pile.push(cardInQuestion);
+            this.setState(() => ({
+                cardInHand: this.player.hand[this.player.handIndex],
+                topCard: cardInQuestion,
+                playerCards: this.player.hand,
+                whoseTurn: 1,
+            }));
+            if (this.player.hasWon()) {
+                this.setState(() => ({ winner: ("Player Won") }));
+                return;
+            }
+            // Ask for suit if player played an Eight
+            if (cardInQuestion.rank === Rank.Eight) {
+                this.setState(() => ({ changingSuit: true }));
+            }
+            else
+                this.botTurn();
+        });
     }
     /**
      * Simulates a bot's turn after the player's turn or another bot's turn
@@ -303,26 +319,40 @@ class Game extends react_1.Component {
     botTurn() {
         return __awaiter(this, void 0, void 0, function* () {
             yield this.delay(1000);
-            const bot = this.participants[this.whoseTurn];
+            const bot = this.participants[this.state.whoseTurn];
             // Bot draws cards until it's playable
-            while (!bot.hasPlayableCard(this.state.topCard.rank, this.state.topCard.suit))
-                bot.add(this.dealCard());
+            while (!bot.hasPlayableCard(this.state.topCard.rank, this.state.topCard.suit)) {
+                const dealtCard = this.dealCard();
+                // Skip turn if there's no more cards to deal
+                if (!dealtCard) {
+                    this.setState(() => ({
+                        whoseTurn: (this.state.whoseTurn + 1) % 4,
+                    }), () => {
+                        if (!!this.state.whoseTurn)
+                            this.botTurn();
+                    });
+                    return;
+                }
+                bot.add(dealtCard);
+            }
             const cardInQuestion = bot.playCard(this.state.topCard.rank, this.state.topCard.suit);
             this.pile.push(cardInQuestion);
-            this.whoseTurn = (++this.whoseTurn) % 4;
+            // Finishes bots turn after setting state
+            const afterBotTurn = () => {
+                // If Bot played an Eight, choose a random suit
+                if (bot.hasWon()) {
+                    this.setState(() => ({ winner: ("Bot " + ((this.state.whoseTurn - 1) % 4) + " Won") }));
+                    return;
+                }
+                if (cardInQuestion.rank === Rank.Eight)
+                    this.switchSuit(Math.floor(Math.random() * 4));
+                if (!!this.state.whoseTurn)
+                    this.botTurn();
+            };
             this.setState(() => ({
+                whoseTurn: (this.state.whoseTurn + 1) % 4,
                 topCard: cardInQuestion,
-                whoseTurn: this.whoseTurn,
-            }));
-            // If Bot played an Eight, choose a random suit
-            if (cardInQuestion.rank === Rank.Eight)
-                this.switchSuit(Math.floor(Math.random() * 4));
-            if (bot.hasWon()) {
-                console.log(bot.name, "has won!");
-                return;
-            }
-            if (!!this.whoseTurn)
-                this.botTurn();
+            }), afterBotTurn);
         });
     }
     /**
@@ -339,7 +369,16 @@ class Game extends react_1.Component {
      * Handles when "Draw Card" button is clicked and draws a card from stock
      */
     onClickDraw() {
-        this.player.add(this.dealCard());
+        const dealtCard = this.dealCard();
+        // Skip turn if there's no more cards to deal
+        if (!dealtCard) {
+            this.setState(() => ({
+                whoseTurn: 1,
+            }));
+            this.botTurn();
+            return;
+        }
+        this.player.add(dealtCard);
         this.setState(() => ({
             cardInHand: this.player.hand[this.player.handIndex],
             playerCards: this.player.hand,
